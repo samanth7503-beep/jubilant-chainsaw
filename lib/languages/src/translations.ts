@@ -230,30 +230,7 @@ export function parseTranslatedText(raw: string): string {
  * Exported helper: apply parsing heuristics to raw model text
  * Separated for unit testing.
  */
-export function parseTranslatedText(raw: string): string {
-  let translatedText = raw || "";
-
-  try {
-    const maybeJson = JSON.parse(raw);
-    if (maybeJson && typeof maybeJson === "object") {
-      translatedText = maybeJson.translated || maybeJson.translation || maybeJson.text || JSON.stringify(maybeJson);
-    }
-  } catch (e) {}
-
-  if (!translatedText || translatedText.trim() === "") {
-    const tickMatch = raw.match(/```(?:\w+)?\n([\s\S]*?)```/);
-    if (tickMatch) translatedText = tickMatch[1].trim();
-  }
-
-  if (!translatedText || translatedText.trim() === "") {
-    const labelMatch = raw.match(/(?:Translation|Translated(?:\stext)?|Translated:)[:\s-]*([\s\S]+)/i);
-    if (labelMatch) translatedText = labelMatch[1].trim();
-  }
-
-  translatedText = translatedText.replace(/^\s*[a-z]{2}[:\-]\s*/i, "").trim();
-  translatedText = translatedText.replace(/\n{2,}/g, "\n").trim();
-  return translatedText;
-}
+// (duplicate helper removed — `parseTranslatedText` is defined above)
 
 /**
  * Format text for specific language
