@@ -1,5 +1,14 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
+// Mock local gemini integration helper so tests don't require env vars
+vi.mock('../gemini-integration', () => ({
+  getGeminiLanguageConfig: () => ({ apiKey: 'test', baseUrl: 'https://example', model: 'test' }),
+  LANGUAGE_PROMPTS: {
+    translation: (_src: any, _tgt: any, text: string) => text,
+    languageDetection: (text: string) => text,
+  },
+}));
+
 // Mock the Gemini client used by the translations module
 vi.mock('../../integrations-gemini-ai/src/client', () => {
   return {
