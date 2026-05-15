@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useAppStore, type TargetExam, type PedagogyStyle, type Language, type ModelId } from "@/store/appStore";
-
+import LanguageSelector from "./LanguageSelector";
 const EXAMS: TargetExam[] = [
   "NEET", "JEE", "UPSC", "CAT", "GATE", "SSC MTS", "SSC CHSL",
   "SAT", "GRE", "GMAT", "IELTS",
@@ -24,7 +24,6 @@ const STYLE_LOCK: Partial<Record<PedagogyStyle, keyof import("@/store/appStore")
 
 const TIER_LABEL: Record<string, { text: string; cls: string }> = {
   free:      { text: "Free Plan",     cls: "text-muted border-[hsl(var(--border-c))]" },
-import LanguageSelector from "./LanguageSelector";
   pro:       { text: "✦ Pro Active",  cls: "text-accent border-blue-500/40" },
   pro_plus:  { text: "★ Pro Plus",    cls: "text-purple-400 border-purple-400/40" },
   developer: { text: "⚡ Developer",  cls: "text-orange-400 border-orange-500/40 bg-orange-500/10" },
@@ -196,30 +195,26 @@ export default function ParameterMatrix({ onProceed }: { onProceed: () => void }
         </GlassCard>
 
         <GlassCard title="Localization" delay={0.16}>
-          <ChipSelector
-            options={LANGS}
-            value={params.language}
-            onChange={(v) => setParam("language", v)}
-            lockMap={LANG_LOCK as Partial<Record<Language, string>>}
-            entitlements={entitlements as unknown as Record<string, boolean | number>}
-            onLocked={() => setUpgradeModal(true)}
-          />
+          <LanguageSelector />
         </GlassCard>
 
         <GlassCard title="Inference Model" delay={0.24}>
           <ChipSelector
             options={MODELS}
             value={params.model}
-          <LanguageSelector />
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
+            onChange={(v) => setParam("model", v)}
+            lockMap={MODEL_LOCK as Partial<Record<ModelId, string>>}
+            entitlements={entitlements as unknown as Record<string, boolean | number>}
+            onLocked={() => setUpgradeModal(true)}
+          />
+        </GlassCard>
+
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
           <button onClick={onProceed} className="btn-primary w-full py-4 text-lg" data-testid="btn-proceed">
             Initialize Agent →
           </button>
         </motion.div>
       </motion.div>
-    </div>
+  </div>
   );
 }
