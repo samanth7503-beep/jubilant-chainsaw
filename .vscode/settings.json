@@ -7,5 +7,11 @@
   "workbench.editor.enablePreview": false,
   "workbench.startupEditor": "none",
   "explorer.confirmDelete": false,
-  "explorer.confirmDragAndDrop": false
+  "explorer.confirmDragAndDrop": false,
+  "chat.tools.terminal.autoApprove": {
+    "/^git push --dry-run origin main$/": {
+      "approve": true,
+      "matchCommandLine": true
+    }
+  }
 }

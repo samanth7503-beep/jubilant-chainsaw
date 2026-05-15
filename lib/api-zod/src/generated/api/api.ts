@@ -174,10 +174,39 @@ export const InvokeTutorResponse = zod.object({
 });
 
 /**
+ * @summary Get a detailed explanation for a syllabus topic
+ */
+export const explainTopicBodyExamTypeDefault = `BSC_BIOTECH_PART1`;
+export const explainTopicBodyDepthDefault = `detailed`;
+export const explainTopicBodyPedagogyStyleDefault = `english`;
+
+export const ExplainTopicBody = zod.object({
+  topic: zod.string(),
+  subtopic: zod.string().optional(),
+  subject: zod.string().optional(),
+  examType: zod.string().default(explainTopicBodyExamTypeDefault),
+  depth: zod
+    .enum(["basic", "detailed", "exam-focused"])
+    .default(explainTopicBodyDepthDefault),
+  pedagogyStyle: zod
+    .enum(["english", "hinglish", "mnemonic"])
+    .default(explainTopicBodyPedagogyStyleDefault),
+});
+
+export const ExplainTopicResponse = zod.object({
+  topic: zod.string(),
+  explanation: zod.string(),
+  keyPoints: zod.array(zod.string()),
+  relatedTopics: zod.array(zod.string()),
+  difficulty: zod.enum(["beginner", "intermediate", "advanced"]),
+  mnemonics: zod.array(zod.string()).optional(),
+});
+
+/**
  * @summary Upload and parse a PDF syllabus document
  */
 export const UploadPdfBody = zod.object({
-  file: zod.any(),
+  file: zod.instanceof(File),
   examType: zod.string(),
 });
 

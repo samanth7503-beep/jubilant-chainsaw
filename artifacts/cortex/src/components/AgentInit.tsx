@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import PulsingSphere from "@/three/PulsingSphere";
 import { useAppStore } from "@/store/appStore";
-import { useInvokeTutor, useUploadPdf } from "@workspace/api-client-react";
+import { useExplainTopic, useInvokeTutor, useUploadPdf } from "@workspace/api-client-react";
 
 const PROMPT_SUGGESTIONS: Record<string, string[]> = {
   NEET: [
@@ -48,9 +48,33 @@ export default function AgentInit() {
   const [query, setQuery] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(false);
+  const [mode, setMode] = useState<"tutor" | "explain">("tutor");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const suggestions = PROMPT_SUGGESTIONS[params.target_exam] ?? PROMPT_SUGGESTIONS.DEFAULT;
+
+  const explainTopic = useExplainTopic({
+    mutation: {
+      onSuccess: (data) => {
+        setAgentResult({
+          final_output: data.explanation,
+          cache_hit: false,
+          grading_passed: true,
+          mnemonics: data.mnemonics,
+          weak_topics: [],
+          revision_suggestions: data.relatedTopics,
+        });
+        setLocalLoading(false);
+        setLoading(false);
+      },
+      onError: (err: unknown) => {
+        const msg = err instanceof Error ? err.message : "Topic explanation failed. Please try again.";
+        setError(msg);
+        setLocalLoading(false);
+        setLoading(false);
+      },
+    },
+  });
 
   const invokeTutor = useInvokeTutor({
     mutation: {
@@ -107,6 +131,20 @@ export default function AgentInit() {
     setLoading(true);
     setError(null);
     setLastQuery(q);
+
+    if (mode === "explain") {
+      explainTopic.mutate({
+        data: {
+          topic: q,
+          subject: params.target_exam,
+          examType: params.target_exam,
+          depth: "detailed",
+          pedagogyStyle: params.language === "Hinglish" || params.language === "Hindi" ? "hinglish" : "english",
+        },
+      });
+      return;
+    }
+
     invokeTutor.mutate({
       data: {
         userInput: q,
@@ -181,7 +219,30 @@ export default function AgentInit() {
                 className="w-full bg-transparent text-text placeholder:text-muted text-sm outline-none resize-none font-sans leading-relaxed"
                 data-testid="input-query"
               />
-              <div className="flex items-center gap-3 pt-2 border-t border-[hsl(var(--border-c))]">
+              <div className="flex flex-wrap gap-2 items-center pt-2 border-t border-[hsl(var(--border-c))]">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setMode("tutor")}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
+                      mode === "tutor"
+                        ? "bg-blue-500 text-white"
+                        : "text-muted border border-[hsl(var(--border-c))] hover:text-accent"
+                    }`}
+                  >
+                    Tutor
+                  </button>
+                  <button
+                    onClick={() => setMode("explain")}
+                    className={`px-3 py-1 rounded-lg text-xs font-mono transition-all ${
+                      mode === "explain"
+                        ? "bg-green-500 text-white"
+                        : "text-muted border border-[hsl(var(--border-c))] hover:text-accent"
+                    }`}
+                  >
+                    Explain Topic
+                  </button>
+                </div>
+
                 {canPDF ? (
                   <>
                     <input
@@ -217,7 +278,7 @@ export default function AgentInit() {
                   className="btn-primary ml-auto px-8 disabled:opacity-40"
                   data-testid="btn-launch"
                 >
-                  Launch →
+                  {mode === "explain" ? "Explain →" : "Launch →"}
                 </button>
               </div>
             </div>
