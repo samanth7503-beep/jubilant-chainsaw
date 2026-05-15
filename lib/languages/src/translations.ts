@@ -192,6 +192,41 @@ export async function detectLanguage(text: string): Promise<{ code: LanguageCode
 }
 
 /**
+ * Parse a raw model output into a cleaned translation string.
+ * Exported for unit testing and reuse.
+ */
+export function parseTranslatedText(raw: string): string {
+  if (!raw) return "";
+  let translatedText = raw;
+
+  // 1) If JSON, prefer known fields
+  try {
+    const maybeJson = JSON.parse(raw);
+    if (maybeJson && typeof maybeJson === "object") {
+      return maybeJson.translated || maybeJson.translation || maybeJson.text || JSON.stringify(maybeJson);
+    }
+  } catch (e) {
+    // not JSON
+  }
+
+  // 2) Extract code-fence block if present (and remove any preceding text)
+  const tickMatch = raw.match(/(?:^|\n)[^`]*```(?:\w+)?\n([\s\S]*?)```/);
+  if (tickMatch) return tickMatch[1].trim();
+
+  // 3) Labeled translation like "Translation: ..." (strip label)
+  const labelMatch = raw.match(/(?:^|\n)\s*(?:Translation|Translated(?:\stext)?|Translated:)[:\s-]*([\s\S]+)/i);
+  if (labelMatch) return labelMatch[1].trim();
+
+  // 4) Remove leading language labels like "en: ..."
+  translatedText = translatedText.replace(/^\s*[a-z]{2}[:\-]\s*/i, "").trim();
+
+  // 5) Collapse multiple blank lines
+  translatedText = translatedText.replace(/\n{2,}/g, "\n").trim();
+
+  return translatedText;
+}
+
+/**
  * Exported helper: apply parsing heuristics to raw model text
  * Separated for unit testing.
  */

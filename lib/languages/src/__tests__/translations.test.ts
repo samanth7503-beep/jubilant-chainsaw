@@ -12,7 +12,6 @@ vi.mock('../../integrations-gemini-ai/src/client', () => {
 });
 
 import { TranslationService, detectLanguage } from '../translations';
-const { ai } = require('../../integrations-gemini-ai/src/client');
 
 describe('TranslationService & detectLanguage', () => {
   beforeEach(() => {
@@ -20,8 +19,8 @@ describe('TranslationService & detectLanguage', () => {
   });
 
   it('parses JSON translation payloads from Gemini', async () => {
-    // Simulate Gemini returning JSON with a `translated` field
-    ai.models.generateContent.mockResolvedValueOnce({
+    const client = await import('../../integrations-gemini-ai/src/client');
+    client.ai.models.generateContent.mockResolvedValueOnce({
       candidates: [
         { content: { parts: [{ text: JSON.stringify({ translated: 'नमस्ते दुनिया' }) }] } },
       ],
@@ -34,7 +33,8 @@ describe('TranslationService & detectLanguage', () => {
   });
 
   it('extracts language code from simple detect responses', async () => {
-    ai.models.generateContent.mockResolvedValueOnce({
+    const client = await import('../../integrations-gemini-ai/src/client');
+    client.ai.models.generateContent.mockResolvedValueOnce({
       candidates: [
         { content: { parts: [{ text: 'fr' }] } },
       ],
@@ -45,7 +45,8 @@ describe('TranslationService & detectLanguage', () => {
   });
 
   it('falls back to en on errors', async () => {
-    ai.models.generateContent.mockRejectedValueOnce(new Error('rate limit'));
+    const client = await import('../../integrations-gemini-ai/src/client');
+    client.ai.models.generateContent.mockRejectedValueOnce(new Error('rate limit'));
     const d = await detectLanguage('Hola');
     expect(d.code).toBe('en');
     expect(d.confidence).toBeLessThanOrEqual(0.5);
