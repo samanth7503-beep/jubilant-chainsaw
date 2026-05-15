@@ -88,16 +88,36 @@ export class TranslationService {
       const candidate = response?.candidates?.[0];
       const text = candidate?.content?.parts?.map((p: any) => p.text).join("\n") || "";
 
-      // Robust parsing: attempt to extract the translated block if model returns JSON or labeled text
+      // Robust parsing heuristics: prefer structured outputs when available
       let translatedText = text;
+
+      // 1) If model returned JSON, parse known fields
       try {
         const maybeJson = JSON.parse(text);
         if (maybeJson && typeof maybeJson === "object") {
-          translatedText = maybeJson.translated || maybeJson.translation || JSON.stringify(maybeJson);
+          translatedText = maybeJson.translated || maybeJson.translation || maybeJson.text || JSON.stringify(maybeJson);
         }
       } catch (e) {
-        // not JSON — fall through
+        // not JSON — continue with other heuristics
       }
+
+      // 2) If model wrapped translation in triple backticks, extract contents
+      if (!translatedText || translatedText.trim() === "") {
+        const tickMatch = text.match(/```(?:\w+)?\n([\s\S]*?)```/);
+        if (tickMatch) translatedText = tickMatch[1].trim();
+      }
+
+      // 3) Look for labeled translation lines like "Translation:" or "Translated:" and extract following text
+      if (!translatedText || translatedText.trim() === "") {
+        const labelMatch = text.match(/(?:Translation|Translated(?:\stext)?|Translated:)[:\s-]*([\s\S]+)/i);
+        if (labelMatch) translatedText = labelMatch[1].trim();
+      }
+
+      // 4) Remove leading language labels like "en: ..." or "hi - ..."
+      translatedText = translatedText.replace(/^\s*[a-z]{2}[:\-]\s*/i, "").trim();
+
+      // 5) Fallback: collapse multiple blank lines
+      translatedText = translatedText.replace(/\n{2,}/g, "\n").trim();
 
       return {
         original: request.text,
