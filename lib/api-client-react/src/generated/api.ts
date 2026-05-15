@@ -21,6 +21,8 @@ import type {
   CompleteRevisionBody,
   CreateGeminiConversationBody,
   DiagnosticResponse,
+  ExplainTopicBody,
+  ExplainTopicResponse,
   GeminiConversation,
   GeminiConversationWithMessages,
   GeminiError,
@@ -41,6 +43,15 @@ import type {
   SendGeminiMessageBody,
   SynthesizeSpeechBody,
   SynthesizeSpeechResponse,
+  StudyPlanRequest,
+  StudyPlanResponse,
+  AuthLoginBody,
+  AuthResponse,
+  CheckoutSessionBody,
+  CheckoutSessionResponse,
+  UpgradePlanBody,
+  User,
+  Entitlements,
   TutorResponse,
   UpdateMasteryBody,
   UploadPdfBody,
@@ -986,6 +997,424 @@ export const useInvokeTutor = <
   TContext
 > => {
   return useMutation(getInvokeTutorMutationOptions(options));
+};
+
+/**
+ * @summary Get a detailed explanation for a syllabus topic
+ */
+export const getExplainTopicUrl = () => {
+  return `/api/explain/topic`;
+};
+
+export const explainTopic = async (
+  explainTopicBody: ExplainTopicBody,
+  options?: RequestInit,
+): Promise<ExplainTopicResponse> => {
+  return customFetch<ExplainTopicResponse>(getExplainTopicUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(explainTopicBody),
+  });
+};
+
+export const getExplainTopicMutationOptions = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof explainTopic>>,
+    TError,
+    { data: BodyType<ExplainTopicBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof explainTopic>>,
+  TError,
+  { data: BodyType<ExplainTopicBody> },
+  TContext
+> => {
+  const mutationKey = ["explainTopic"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof explainTopic>>,
+    { data: BodyType<ExplainTopicBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return explainTopic(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExplainTopicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof explainTopic>>
+>;
+export type ExplainTopicMutationBody = BodyType<ExplainTopicBody>;
+export type ExplainTopicMutationError = ErrorType<GeminiError>;
+
+/**
+ * @summary Get a detailed explanation for a syllabus topic
+ */
+export const useExplainTopic = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof explainTopic>>,
+    TError,
+    { data: BodyType<ExplainTopicBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof explainTopic>>,
+  TError,
+  { data: BodyType<ExplainTopicBody> },
+  TContext
+> => {
+  return useMutation(getExplainTopicMutationOptions(options));
+};
+
+/**
+ * @summary Generate a personalized study plan
+ */
+export const getStudyPlanUrl = () => {
+  return `/api/study-plan`;
+};
+
+export const studyPlan = async (
+  studyPlanRequest: StudyPlanRequest,
+  options?: RequestInit,
+): Promise<StudyPlanResponse> => {
+  return customFetch<StudyPlanResponse>(getStudyPlanUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(studyPlanRequest),
+  });
+};
+
+export const getStudyPlanMutationOptions = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof studyPlan>>,
+    TError,
+    { data: BodyType<StudyPlanRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof studyPlan>>,
+  TError,
+  { data: BodyType<StudyPlanRequest> },
+  TContext
+> => {
+  const mutationKey = ["studyPlan"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof studyPlan>>,
+    { data: BodyType<StudyPlanRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return studyPlan(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type StudyPlanMutationResult = NonNullable<
+  Awaited<ReturnType<typeof studyPlan>>
+>;
+export type StudyPlanMutationBody = BodyType<StudyPlanRequest>;
+export type StudyPlanMutationError = ErrorType<GeminiError>;
+
+export const useStudyPlan = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof studyPlan>>,
+    TError,
+    { data: BodyType<StudyPlanRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof studyPlan>>,
+  TError,
+  { data: BodyType<StudyPlanRequest> },
+  TContext
+> => {
+  return useMutation(getStudyPlanMutationOptions(options));
+};
+
+/**
+ * @summary Login a user and create a session token
+ */
+export const getAuthLoginUrl = () => {
+  return `/api/auth/login`;
+};
+
+export const authLogin = async (
+  authLoginBody: AuthLoginBody,
+  options?: RequestInit,
+): Promise<AuthResponse> => {
+  return customFetch<AuthResponse>(getAuthLoginUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(authLoginBody),
+  });
+};
+
+export const getAuthLoginMutationOptions = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authLogin>>,
+    TError,
+    { data: BodyType<AuthLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authLogin>>,
+  TError,
+  { data: BodyType<AuthLoginBody> },
+  TContext
+> => {
+  const mutationKey = ["authLogin"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authLogin>>,
+    { data: BodyType<AuthLoginBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return authLogin(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthLoginMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authLogin>>
+>;
+export type AuthLoginMutationBody = BodyType<AuthLoginBody>;
+export type AuthLoginMutationError = ErrorType<GeminiError>;
+
+export const useAuthLogin = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authLogin>>,
+    TError,
+    { data: BodyType<AuthLoginBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof authLogin>>,
+  TError,
+  { data: BodyType<AuthLoginBody> },
+  TContext
+> => {
+  return useMutation(getAuthLoginMutationOptions(options));
+};
+
+/**
+ * @summary Upgrade the user's plan tier
+ */
+export const getAuthUpgradeUrl = () => {
+  return `/api/auth/upgrade`;
+};
+
+export const authUpgrade = async (
+  upgradePlanBody: UpgradePlanBody,
+  options?: RequestInit,
+): Promise<AuthResponse> => {
+  return customFetch<AuthResponse>(getAuthUpgradeUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(upgradePlanBody),
+  });
+};
+
+export const getAuthUpgradeMutationOptions = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authUpgrade>>,
+    TError,
+    { data: BodyType<UpgradePlanBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof authUpgrade>>,
+  TError,
+  { data: BodyType<UpgradePlanBody> },
+  TContext
+> => {
+  const mutationKey = ["authUpgrade"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof authUpgrade>>,
+    { data: BodyType<UpgradePlanBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return authUpgrade(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AuthUpgradeMutationResult = NonNullable<
+  Awaited<ReturnType<typeof authUpgrade>>
+>;
+export type AuthUpgradeMutationBody = BodyType<UpgradePlanBody>;
+export type AuthUpgradeMutationError = ErrorType<GeminiError>;
+
+export const useUpgradePlan = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof authUpgrade>>,
+    TError,
+    { data: BodyType<UpgradePlanBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof authUpgrade>>,
+  TError,
+  { data: BodyType<UpgradePlanBody> },
+  TContext
+> => {
+  return useMutation(getAuthUpgradeMutationOptions(options));
+};
+
+/**
+ * @summary Create a checkout session for upgrading a plan
+ */
+export const getCheckoutSessionUrl = () => {
+  return `/api/payment/checkout-session`;
+};
+
+export const checkoutSession = async (
+  checkoutSessionBody: CheckoutSessionBody,
+  options?: RequestInit,
+): Promise<CheckoutSessionResponse> => {
+  return customFetch<CheckoutSessionResponse>(getCheckoutSessionUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(checkoutSessionBody),
+  });
+};
+
+export const getCheckoutSessionMutationOptions = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkoutSession>>,
+    TError,
+    { data: BodyType<CheckoutSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof checkoutSession>>,
+  TError,
+  { data: BodyType<CheckoutSessionBody> },
+  TContext
+> => {
+  const mutationKey = ["checkoutSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof checkoutSession>>,
+    { data: BodyType<CheckoutSessionBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return checkoutSession(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CheckoutSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof checkoutSession>>
+>;
+export type CheckoutSessionMutationBody = BodyType<CheckoutSessionBody>;
+export type CheckoutSessionMutationError = ErrorType<GeminiError>;
+
+export const useCheckoutSession = <
+  TError = ErrorType<GeminiError>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof checkoutSession>>,
+    TError,
+    { data: BodyType<CheckoutSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof checkoutSession>>,
+  TError,
+  { data: BodyType<CheckoutSessionBody> },
+  TContext
+> => {
+  return useMutation(getCheckoutSessionMutationOptions(options));
 };
 
 /**

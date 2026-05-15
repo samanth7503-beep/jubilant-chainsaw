@@ -163,6 +163,51 @@ export interface AddRevisionBody {
   score: number;
 }
 
+export type ExplainTopicBodyDepth =
+  (typeof ExplainTopicBodyDepth)[keyof typeof ExplainTopicBodyDepth];
+
+export const ExplainTopicBodyDepth = {
+  basic: "basic",
+  detailed: "detailed",
+  "exam-focused": "exam-focused",
+} as const;
+
+export type ExplainTopicBodyPedagogyStyle =
+  (typeof ExplainTopicBodyPedagogyStyle)[keyof typeof ExplainTopicBodyPedagogyStyle];
+
+export const ExplainTopicBodyPedagogyStyle = {
+  english: "english",
+  hinglish: "hinglish",
+  mnemonic: "mnemonic",
+} as const;
+
+export interface ExplainTopicBody {
+  topic: string;
+  subtopic?: string;
+  subject?: string;
+  examType?: string;
+  depth?: ExplainTopicBodyDepth;
+  pedagogyStyle?: ExplainTopicBodyPedagogyStyle;
+}
+
+export type ExplainTopicResponseDifficulty =
+  (typeof ExplainTopicResponseDifficulty)[keyof typeof ExplainTopicResponseDifficulty];
+
+export const ExplainTopicResponseDifficulty = {
+  beginner: "beginner",
+  intermediate: "intermediate",
+  advanced: "advanced",
+} as const;
+
+export interface ExplainTopicResponse {
+  topic: string;
+  explanation: string;
+  keyPoints: string[];
+  relatedTopics: string[];
+  difficulty: ExplainTopicResponseDifficulty;
+  mnemonics?: string[];
+}
+
 export interface CompleteRevisionBody {
   passed: boolean;
   score: number;
@@ -190,6 +235,109 @@ export interface RunDiagnosticBody {
 export interface DiagnosticResponse {
   evaluation: string;
   score: number;
+}
+
+export type AuthLoginBodyRole =
+  (typeof AuthLoginBodyRole)[keyof typeof AuthLoginBodyRole];
+
+export const AuthLoginBodyRole = {
+  student: "student",
+  educator: "educator",
+  parent: "parent",
+} as const;
+
+export type AuthLoginBodyTier =
+  (typeof AuthLoginBodyTier)[keyof typeof AuthLoginBodyTier];
+
+export const AuthLoginBodyTier = {
+  free: "free",
+  pro: "pro",
+  pro_plus: "pro_plus",
+  developer: "developer",
+} as const;
+
+export interface AuthLoginBody {
+  name?: string;
+  role?: AuthLoginBodyRole;
+  tier?: AuthLoginBodyTier;
+}
+
+export interface UpgradePlanBody {
+  tier: AuthLoginBodyTier;
+}
+
+export interface CheckoutSessionBody {
+  tier: AuthLoginBodyTier;
+  successUrl?: string;
+  cancelUrl?: string;
+}
+
+export interface CheckoutSessionResponse {
+  tier: AuthLoginBodyTier;
+  sessionId: string;
+  checkoutUrl: string;
+  status: string;
+}
+
+export interface Entitlements {
+  can_use_pdf: boolean;
+  can_view_diagnostics: boolean;
+  can_use_practice: boolean;
+  can_use_advanced_models: boolean;
+  can_use_hindi: boolean;
+  can_use_abstract: boolean;
+  can_access_dashboard: boolean;
+  can_multi_model: boolean;
+  can_export_sessions: boolean;
+  can_custom_prompt: boolean;
+  can_bulk_pdf: boolean;
+  can_dev_panel: boolean;
+  query_limit: number;
+}
+
+export interface User {
+  name: string;
+  role: AuthLoginBodyRole;
+  tier: AuthLoginBodyTier;
+  entitlements: Entitlements;
+}
+
+export interface AuthResponse {
+  user: User;
+  sessionToken?: string;
+}
+
+export interface StudyPlanRequest {
+  subject?: string;
+  examType?: string;
+  duration: number;
+  dailyHours: number;
+  currentLevel: "beginner" | "intermediate" | "advanced";
+  weakTopics?: string[];
+  examDate?: string;
+}
+
+export interface StudyPlanResponse {
+  subject: string;
+  duration: number;
+  dailyHours: number;
+  totalTopics: number;
+  studyPlan: Array<{
+    week: number;
+    day: number;
+    date: string;
+    topics: string[];
+    estimatedHours: number;
+    focus: string;
+    objectives: string[];
+  }>;
+  revisionSchedule: Array<{
+    date: string;
+    topics: string[];
+    type: "quick" | "comprehensive" | "practice";
+  }>;
+  tips: string[];
+  milestones: string[];
 }
 
 export type UploadPdfBody = {

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import IsoNodeCluster from "@/three/IsoNodeCluster";
+import { useAuthLogin } from "@workspace/api-client-react";
 import { useAppStore, TIER_ENTITLEMENTS, type Role, type Tier } from "@/store/appStore";
 
 const ROLE_META: Record<Role, { emoji: string; desc: string }> = {
@@ -111,17 +112,23 @@ export default function AuthGateway() {
   const [showDev, setShowDev] = useState(false);
   const [devError, setDevError] = useState("");
 
+  const authLoginMutation = useAuthLogin({
+    mutation: {
+      onSuccess: (data) => {
+        login(data.user);
+        setLoading(false);
+      },
+      onError: (error) => {
+        setDevError(error instanceof Error ? error.message : "Login failed. Please try again.");
+        setLoading(false);
+      },
+    },
+  });
+
   async function handleEnter() {
     if (!selected) return;
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    login({
-      name: name.trim() || "Learner",
-      role: selected,
-      tier,
-      entitlements: TIER_ENTITLEMENTS[tier],
-    });
-    setLoading(false);
+    authLoginMutation.mutate({ data: { name: name.trim() || "Learner", role: selected, tier } });
   }
 
   function handleDevLogin() {

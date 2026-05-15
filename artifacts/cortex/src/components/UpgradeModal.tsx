@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUpgradePlan } from "@workspace/api-client-react";
 import { useAppStore } from "@/store/appStore";
 
 const TIERS = [
@@ -45,6 +46,25 @@ const TIERS = [
 export default function UpgradeModal() {
   const { upgradeModal, setUpgradeModal, tier: currentTier, setTierAndEntitlements } = useAppStore();
   const [tab, setTab] = useState<"pro" | "pro_plus">("pro_plus");
+  const [error, setError] = useState<string | null>(null);
+
+  const upgradePlanMutation = useUpgradePlan({
+    mutation: {
+      onSuccess: (data) => {
+        setTierAndEntitlements(data.user.tier);
+        setError(null);
+        setUpgradeModal(false);
+      },
+      onError: (err: unknown) => {
+        setError(err instanceof Error ? err.message : "Upgrade failed. Try again.");
+      },
+    },
+  });
+
+  const handleUpgrade = (tier: "pro" | "pro_plus") => {
+    setError(null);
+    upgradePlanMutation.mutate({ data: { tier } });
+  };
 
   return (
     <AnimatePresence>
@@ -111,11 +131,17 @@ export default function UpgradeModal() {
 
               <div className="p-5 border-t border-[hsl(var(--border-c))] space-y-2">
                 {TIERS.filter((t) => t.key === tab).map((t) => (
-                  <button key={t.key} onClick={() => setTierAndEntitlements(t.key)} className={t.btnClass}>
-                    {t.badge} Activate {t.label} (Demo)
+                  <button
+                    key={t.key}
+                    onClick={() => handleUpgrade(t.key)}
+                    disabled={upgradePlanMutation.isPending}
+                    className={`${t.btnClass} ${upgradePlanMutation.isPending ? "opacity-60 cursor-not-allowed" : ""}`}
+                  >
+                    {upgradePlanMutation.isPending && tab === t.key ? "Activating…" : `${t.badge} Activate ${t.label}`}
                   </button>
                 ))}
-                <p className="text-center text-xs text-muted">Demo: unlocks all features for this session</p>
+                {error && <p className="text-xs text-red-400">{error}</p>}
+                <p className="text-center text-xs text-muted">Subscription changes go through backend upgrade workflow.</p>
                 <button onClick={() => setUpgradeModal(false)} className="btn-ghost w-full text-sm">
                   Continue with {currentTier === "free" ? "Free" : "current plan"}
                 </button>

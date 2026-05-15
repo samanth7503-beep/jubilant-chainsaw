@@ -8,6 +8,8 @@ import ttsRouter from "./tts";
 import ingestRouter from "./ingest";
 import explainRouter from "./explain";
 import studyPlanRouter from "./study-plan";
+import authRouter from "./auth";
+import paymentRouter from "./payment";
 
 const router: IRouter = Router();
 
@@ -20,5 +22,7 @@ router.use("/tts", ttsRouter);
 router.use("/ingest", ingestRouter);
 router.use("/explain", explainRouter);
 router.use("/study-plan", studyPlanRouter);
+router.use("/auth", authRouter);
+router.use("/payment", paymentRouter);
 
 export default router;

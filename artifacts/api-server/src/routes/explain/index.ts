@@ -1,16 +1,20 @@
 import { Router } from "express";
 import { z } from "zod";
+import { createHash } from "crypto";
 import { ai } from "@workspace/integrations-gemini-ai";
 import { db } from "@workspace/db";
-import { syllabusChunksTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { semanticCacheTable, syllabusChunksTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 
 const router = Router();
 
 const ExplainTopicRequestSchema = z.object({
   topic: z.string().min(1, "Topic is required"),
+  subtopic: z.string().optional(),
   subject: z.string().optional(),
   examType: z.string().default("BSC_BIOTECH_PART1"),
+  depth: z.enum(["basic", "detailed", "exam-focused"]).default("detailed"),
+  pedagogyStyle: z.enum(["english", "hinglish", "mnemonic"]).default("english"),
 });
 
 const ExplainTopicResponseSchema = z.object({
@@ -19,20 +23,40 @@ const ExplainTopicResponseSchema = z.object({
   keyPoints: z.array(z.string()),
   relatedTopics: z.array(z.string()),
   difficulty: z.enum(["beginner", "intermediate", "advanced"]),
+  mnemonics: z.array(z.string()).optional(),
 });
 
 type ExplainTopicRequest = z.infer<typeof ExplainTopicRequestSchema>;
 type ExplainTopicResponse = z.infer<typeof ExplainTopicResponseSchema>;
 
-router.post("/explain", async (req, res) => {
+router.post("/topic", async (req, res) => {
   try {
-    const { topic, subject, examType } = ExplainTopicRequestSchema.parse(req.body);
+    const { topic, subtopic, subject, examType, depth, pedagogyStyle } = ExplainTopicRequestSchema.parse(req.body);
 
-    // First, try to find existing syllabus data
+    const queryHash = createHash("sha256")
+      .update(JSON.stringify({ topic, subtopic, subject, examType, depth, pedagogyStyle }))
+      .digest("hex");
+
+    const [cachedEntry] = await db
+      .select()
+      .from(semanticCacheTable)
+      .where(eq(semanticCacheTable.queryHash, queryHash))
+      .limit(1);
+
+    if (cachedEntry) {
+      await db
+        .update(semanticCacheTable)
+        .set({ hits: cachedEntry.hits + 1, lastHitAt: new Date() })
+        .where(eq(semanticCacheTable.id, cachedEntry.id));
+
+      const cachedResponse = JSON.parse(cachedEntry.response) as ExplainTopicResponse;
+      return res.json(cachedResponse);
+    }
+
     const syllabusData = await db
       .select()
       .from(syllabusChunksTable)
-      .where(eq(syllabusChunksTable.topic, topic))
+      .where(and(eq(syllabusChunksTable.topic, topic), eq(syllabusChunksTable.examType, examType)))
       .limit(1);
 
     let context = "";
@@ -40,51 +64,61 @@ router.post("/explain", async (req, res) => {
       context = syllabusData[0].content;
     }
 
-    // Generate detailed explanation using AI
-    const prompt = `You are an expert B.Sc. Biotechnology tutor. Provide a comprehensive explanation for the topic "${topic}" for ${examType} exam.
+    const prompt = `You are an expert B.Sc. Biotechnology tutor. Provide a comprehensive ${depth} explanation for the topic "${topic}" for the ${examType} exam.
 
+${subject ? `Subject: ${subject}\n` : ""}${subtopic ? `Subtopic: ${subtopic}\n` : ""}
 ${context ? `Use this syllabus context as reference:\n${context}\n\n` : ""}
+Use the pedagogy style: ${pedagogyStyle}. Include definitions, examples, exam tips, mnemonic memory aids where relevant, and a clear structure for undergraduate students.
 
 Please structure your response as a JSON object with the following fields:
 - topic: The topic name
-- explanation: A detailed, engaging explanation (300-500 words) with examples and diagrams descriptions
+- explanation: A detailed, engaging explanation with examples and exam-focused guidance
 - keyPoints: Array of 5-8 key learning points
 - relatedTopics: Array of 3-5 related topics to study next
 - difficulty: "beginner", "intermediate", or "advanced"
-
-Make the explanation engaging and easy to understand, suitable for undergraduate students. Include real-world applications and practical examples where relevant.
+- mnemonics: Array of mnemonic phrases or memory aids
 
 Response must be valid JSON only.`;
 
-    const response = await ai.generateContent({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      maxTokens: 2000,
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 2000, temperature: 0.7 },
     });
 
     if (!response.text) {
       throw new Error("Failed to generate explanation");
     }
 
-    // Parse the JSON response
     let explanationData: ExplainTopicResponse;
     try {
-      explanationData = JSON.parse(response.text);
+      explanationData = ExplainTopicResponseSchema.parse(JSON.parse(response.text));
     } catch (parseError) {
-      // If JSON parsing fails, create a structured response from the text
       explanationData = {
         topic,
         explanation: response.text,
         keyPoints: ["Key concepts covered in the explanation"],
         relatedTopics: ["Related biotechnology topics"],
-        difficulty: "intermediate" as const,
+        difficulty: "intermediate",
+        mnemonics: [],
       };
     }
 
-    res.json(explanationData);
+    await db.insert(semanticCacheTable).values({
+      queryHash,
+      queryText: prompt,
+      queryTokens: "",
+      response: JSON.stringify(explanationData),
+      hits: 0,
+      similarity: 1.0,
+      createdAt: new Date(),
+      lastHitAt: new Date(),
+    });
+
+    return res.json(explanationData);
   } catch (error) {
     console.error("Error explaining topic:", error);
-    res.status(500).json({
+    return res.status(500).json({
       error: "Failed to generate topic explanation",
       message: error instanceof Error ? error.message : "Unknown error",
     });

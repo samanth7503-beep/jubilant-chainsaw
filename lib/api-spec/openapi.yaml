@@ -22,6 +22,14 @@ tags:
     description: Student mastery tracking
   - name: revision
     description: Spaced repetition revision queue
+  - name: explain
+    description: Topic explanation and syllabus support
+  - name: study-plan
+    description: Personalized study plan generation
+  - name: auth
+    description: Authentication and subscription management
+  - name: payment
+    description: Payment and checkout session handling
 paths:
   /healthz:
     get:
@@ -240,6 +248,137 @@ paths:
               schema:
                 $ref: "#/components/schemas/TutorResponse"
         "500":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+
+  /explain/topic:
+    post:
+      operationId: explainTopic
+      tags: [explain]
+      summary: Get a detailed explanation for a syllabus topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExplainTopicBody"
+      responses:
+        "200":
+          description: Topic explanation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExplainTopicResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+        "500":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+
+  /study-plan:
+    post:
+      operationId: generateStudyPlan
+      tags: [study-plan]
+      summary: Generate a personalized study plan for an exam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StudyPlanRequest"
+      responses:
+        "200":
+          description: Study plan data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StudyPlanResponse"
+        "500":
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+
+  /auth/login:
+    post:
+      operationId: authLogin
+      tags: [auth]
+      summary: Authenticate a user and obtain a session token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AuthLoginBody"
+      responses:
+        "200":
+          description: User session data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+
+  /auth/upgrade:
+    post:
+      operationId: upgradePlan
+      tags: [auth]
+      summary: Upgrade the user's plan tier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpgradePlanBody"
+      responses:
+        "200":
+          description: Updated user session data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeminiError"
+
+  /payment/checkout-session:
+    post:
+      operationId: createCheckoutSession
+      tags: [payment]
+      summary: Create a checkout session for upgrading a plan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutSessionBody"
+      responses:
+        "200":
+          description: Payment session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutSessionResponse"
+        "400":
           description: Error
           content:
             application/json:
@@ -762,6 +901,300 @@ components:
         - subject
         - examType
         - score
+
+    ExplainTopicBody:
+      type: object
+      properties:
+        topic:
+          type: string
+        subtopic:
+          type: string
+        subject:
+          type: string
+        examType:
+          type: string
+          default: BSC_BIOTECH_PART1
+        depth:
+          type: string
+          enum: [basic, detailed, exam-focused]
+          default: detailed
+        pedagogyStyle:
+          type: string
+          enum: [english, hinglish, mnemonic]
+          default: english
+      required:
+        - topic
+
+    ExplainTopicResponse:
+      type: object
+      properties:
+        topic:
+          type: string
+        explanation:
+          type: string
+        keyPoints:
+          type: array
+          items:
+            type: string
+        relatedTopics:
+          type: array
+          items:
+            type: string
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        mnemonics:
+          type: array
+          items:
+            type: string
+      required:
+        - topic
+        - explanation
+        - keyPoints
+        - relatedTopics
+        - difficulty
+
+    StudyPlanRequest:
+      type: object
+      properties:
+        subject:
+          type: string
+          default: Biotechnology
+        examType:
+          type: string
+          default: BSC_BIOTECH_PART1
+        duration:
+          type: integer
+          default: 30
+        dailyHours:
+          type: integer
+          default: 4
+        currentLevel:
+          type: string
+          enum: [beginner, intermediate, advanced]
+          default: beginner
+        weakTopics:
+          type: array
+          items:
+            type: string
+        examDate:
+          type: string
+          format: date
+      required:
+        - duration
+        - dailyHours
+        - currentLevel
+
+    StudyPlanResponse:
+      type: object
+      properties:
+        subject:
+          type: string
+        duration:
+          type: integer
+        dailyHours:
+          type: integer
+        totalTopics:
+          type: integer
+        studyPlan:
+          type: array
+          items:
+            type: object
+            properties:
+              week:
+                type: integer
+              day:
+                type: integer
+              date:
+                type: string
+                format: date
+              topics:
+                type: array
+                items:
+                  type: string
+              estimatedHours:
+                type: number
+              focus:
+                type: string
+              objectives:
+                type: array
+                items:
+                  type: string
+            required:
+              - week
+              - day
+              - date
+              - topics
+              - estimatedHours
+              - focus
+              - objectives
+        revisionSchedule:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              topics:
+                type: array
+                items:
+                  type: string
+              type:
+                type: string
+                enum: [quick, comprehensive, practice]
+            required:
+              - date
+              - topics
+              - type
+        tips:
+          type: array
+          items:
+            type: string
+        milestones:
+          type: array
+          items:
+            type: string
+      required:
+        - subject
+        - duration
+        - dailyHours
+        - totalTopics
+        - studyPlan
+        - revisionSchedule
+        - tips
+        - milestones
+
+    AuthLoginBody:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          enum: [student, educator, parent]
+          default: student
+        tier:
+          type: string
+          enum: [free, pro, pro_plus, developer]
+          default: free
+      required: []
+
+    UpgradePlanBody:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [free, pro, pro_plus, developer]
+      required:
+        - tier
+
+    CheckoutSessionBody:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [free, pro, pro_plus, developer]
+        successUrl:
+          type: string
+          format: uri
+        cancelUrl:
+          type: string
+          format: uri
+      required:
+        - tier
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        sessionToken:
+          type: string
+      required:
+        - user
+
+    CheckoutSessionResponse:
+      type: object
+      properties:
+        tier:
+          type: string
+          enum: [free, pro, pro_plus, developer]
+        sessionId:
+          type: string
+        checkoutUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+      required:
+        - tier
+        - sessionId
+        - checkoutUrl
+        - status
+
+    User:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+          enum: [student, educator, parent]
+        tier:
+          type: string
+          enum: [free, pro, pro_plus, developer]
+        entitlements:
+          $ref: "#/components/schemas/Entitlements"
+      required:
+        - name
+        - role
+        - tier
+        - entitlements
+
+    Entitlements:
+      type: object
+      properties:
+        can_use_pdf:
+          type: boolean
+        can_view_diagnostics:
+          type: boolean
+        can_use_practice:
+          type: boolean
+        can_use_advanced_models:
+          type: boolean
+        can_use_hindi:
+          type: boolean
+        can_use_abstract:
+          type: boolean
+        can_access_dashboard:
+          type: boolean
+        can_multi_model:
+          type: boolean
+        can_export_sessions:
+          type: boolean
+        can_custom_prompt:
+          type: boolean
+        can_bulk_pdf:
+          type: boolean
+        can_dev_panel:
+          type: boolean
+        query_limit:
+          type: integer
+      required:
+        - can_use_pdf
+        - can_view_diagnostics
+        - can_use_practice
+        - can_use_advanced_models
+        - can_use_hindi
+        - can_use_abstract
+        - can_access_dashboard
+        - can_multi_model
+        - can_export_sessions
+        - can_custom_prompt
+        - can_bulk_pdf
+        - can_dev_panel
+        - query_limit
 
     CompleteRevisionBody:
       type: object

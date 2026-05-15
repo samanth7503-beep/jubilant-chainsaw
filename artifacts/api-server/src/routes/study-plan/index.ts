@@ -108,10 +108,10 @@ Consider the student's current level and allocate time appropriately. Include re
 
 Response must be valid JSON only.`;
 
-    const response = await ai.generateContent({
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.6,
-      maxTokens: 3000,
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      config: { maxOutputTokens: 3000, temperature: 0.6 },
     });
 
     if (!response.text) {

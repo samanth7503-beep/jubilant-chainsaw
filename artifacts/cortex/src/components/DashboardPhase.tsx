@@ -5,6 +5,7 @@ import {
   useGetMasteryStats,
   useGetRevisionQueue,
   useCompleteRevision,
+  useStudyPlan,
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetRevisionQueueQueryKey } from "@workspace/api-client-react";
@@ -311,6 +312,164 @@ interface HistoryPanelProps {
   onReplay: (query: string) => void;
 }
 
+function formatStudyPlanOutput(plan: any) {
+  const lines: string[] = [];
+  lines.push(`### ${plan.subject} — ${plan.duration}-day plan (${plan.dailyHours}h/day)`);
+  lines.push(`**Topics:** ${plan.totalTopics}`);
+  lines.push("");
+
+  if (plan.studyPlan?.length) {
+    lines.push("#### Daily Schedule");
+    plan.studyPlan.forEach((item: any) => {
+      lines.push(`- **Day ${item.day}** (${item.date}) — ${item.topics.join(", ")} — _${item.focus}_`);
+    });
+    lines.push("");
+  }
+
+  if (plan.revisionSchedule?.length) {
+    lines.push("#### Revision Sessions");
+    plan.revisionSchedule.forEach((item: any) => {
+      lines.push(`- ${item.date}: ${item.topics.join(", ")} (${item.type})`);
+    });
+    lines.push("");
+  }
+
+  if (plan.tips?.length) {
+    lines.push("#### Tips");
+    plan.tips.forEach((tip: string) => lines.push(`- ${tip}`));
+    lines.push("");
+  }
+
+  if (plan.milestones?.length) {
+    lines.push("#### Milestones");
+    plan.milestones.forEach((milestone: string) => lines.push(`- ${milestone}`));
+  }
+
+  return lines.join("\n");
+}
+
+function StudyPlanPanel() {
+  const [subject, setSubject] = useState("Biotechnology");
+  const [duration, setDuration] = useState(30);
+  const [dailyHours, setDailyHours] = useState(4);
+  const [currentLevel, setCurrentLevel] = useState<"beginner" | "intermediate" | "advanced">("beginner");
+  const [weakTopics, setWeakTopics] = useState("");
+  const [examDate, setExamDate] = useState("");
+  const [result, setResult] = useState<string | null>(null);
+  const studyPlanMutation = useStudyPlan({
+    mutation: {
+      onSuccess: (data) => setResult(formatStudyPlanOutput(data)),
+    },
+  });
+
+  const handleSubmit = () => {
+    studyPlanMutation.mutate({
+      data: {
+        subject,
+        examType: subject,
+        duration,
+        dailyHours,
+        currentLevel,
+        weakTopics: weakTopics
+          .split(",")
+          .map((topic) => topic.trim())
+          .filter(Boolean),
+        examDate: examDate || undefined,
+      },
+    });
+  };
+
+  return (
+    <div className="glass p-5 space-y-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-xs font-mono text-muted uppercase tracking-widest">Study Plan</p>
+          <h3 className="text-sm font-semibold text-text">Personalized 30-day learning plan</h3>
+        </div>
+        <button
+          onClick={handleSubmit}
+          disabled={studyPlanMutation.isPending}
+          className="btn-primary text-sm"
+        >
+          {studyPlanMutation.isPending ? "Generating…" : "Generate Plan"}
+        </button>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className="text-xs text-muted">
+          Subject
+          <input
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="mt-2 block w-full glass rounded-xl px-3 py-2 text-sm text-text"
+          />
+        </label>
+        <label className="text-xs text-muted">
+          Duration (days)
+          <input
+            type="number"
+            min={7}
+            max={90}
+            value={duration}
+            onChange={(e) => setDuration(Number(e.target.value))}
+            className="mt-2 block w-full glass rounded-xl px-3 py-2 text-sm text-text"
+          />
+        </label>
+        <label className="text-xs text-muted">
+          Daily hours
+          <input
+            type="number"
+            min={1}
+            max={12}
+            value={dailyHours}
+            onChange={(e) => setDailyHours(Number(e.target.value))}
+            className="mt-2 block w-full glass rounded-xl px-3 py-2 text-sm text-text"
+          />
+        </label>
+        <label className="text-xs text-muted">
+          Current level
+          <select
+            value={currentLevel}
+            onChange={(e) => setCurrentLevel(e.target.value as "beginner" | "intermediate" | "advanced")}
+            className="mt-2 block w-full glass rounded-xl px-3 py-2 text-sm text-text"
+          >
+            <option value="beginner">Beginner</option>
+            <option value="intermediate">Intermediate</option>
+            <option value="advanced">Advanced</option>
+          </select>
+        </label>
+      </div>
+
+      <label className="text-xs text-muted block">
+        Focus topics (comma-separated)
+        <input
+          value={weakTopics}
+          onChange={(e) => setWeakTopics(e.target.value)}
+          placeholder="e.g. Genetics, Biochemistry"
+          className="mt-2 block w-full glass rounded-xl px-3 py-2 text-sm text-text"
+        />
+      </label>
+
+      <label className="text-xs text-muted block">
+        Target exam date
+        <input
+          type="date"
+          value={examDate}
+          onChange={(e) => setExamDate(e.target.value)}
+          className="mt-2 block w-full glass rounded-xl px-3 py-2 text-sm text-text"
+        />
+      </label>
+
+      {result && (
+        <div className="glass p-4">
+          <p className="text-xs font-mono text-muted uppercase tracking-widest mb-3">Study plan output</p>
+          <pre className="text-xs text-text whitespace-pre-wrap break-words font-sans">{result}</pre>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HistoryPanel({ onReplay }: HistoryPanelProps) {
   const { agentResult, lastQuery, params } = useAppStore();
 
@@ -368,6 +527,7 @@ export default function DashboardPhase({ onReplay }: { onReplay: (query: string)
 
       <MasteryPanel />
       <RevisionPanel />
+      <StudyPlanPanel />
 
       <HistoryPanel onReplay={onReplay} />
 
