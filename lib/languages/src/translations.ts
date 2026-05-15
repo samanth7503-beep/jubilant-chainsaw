@@ -88,35 +88,28 @@ export class TranslationService {
       const candidate = response?.candidates?.[0];
       const text = candidate?.content?.parts?.map((p: any) => p.text).join("\n") || "";
 
-      // Robust parsing heuristics: prefer structured outputs when available
+      // Parsing heuristics
       let translatedText = text;
-
-      // 1) If model returned JSON, parse known fields
       try {
         const maybeJson = JSON.parse(text);
         if (maybeJson && typeof maybeJson === "object") {
           translatedText = maybeJson.translated || maybeJson.translation || maybeJson.text || JSON.stringify(maybeJson);
         }
       } catch (e) {
-        // not JSON — continue with other heuristics
+        // not JSON
       }
 
-      // 2) If model wrapped translation in triple backticks, extract contents
       if (!translatedText || translatedText.trim() === "") {
         const tickMatch = text.match(/```(?:\w+)?\n([\s\S]*?)```/);
         if (tickMatch) translatedText = tickMatch[1].trim();
       }
 
-      // 3) Look for labeled translation lines like "Translation:" or "Translated:" and extract following text
       if (!translatedText || translatedText.trim() === "") {
         const labelMatch = text.match(/(?:Translation|Translated(?:\stext)?|Translated:)[:\s-]*([\s\S]+)/i);
         if (labelMatch) translatedText = labelMatch[1].trim();
       }
 
-      // 4) Remove leading language labels like "en: ..." or "hi - ..."
       translatedText = translatedText.replace(/^\s*[a-z]{2}[:\-]\s*/i, "").trim();
-
-      // 5) Fallback: collapse multiple blank lines
       translatedText = translatedText.replace(/\n{2,}/g, "\n").trim();
 
       return {
@@ -128,7 +121,21 @@ export class TranslationService {
         confidence: 0.9,
       };
     } catch (error) {
-      throw new Error(`Translation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      // Hardened error logging and fail-safe response
+      console.error("TranslationService.translate error", {
+        message: error instanceof Error ? error.message : String(error),
+        source: request.sourceLanguage,
+        target: request.targetLanguage,
+        truncatedText: request.text?.slice(0, 200),
+      });
+      return {
+        original: request.text,
+        translated: `[Translation unavailable]`,
+        sourceLanguage: request.sourceLanguage,
+        targetLanguage: request.targetLanguage,
+        provider: "gemini",
+        confidence: 0.0,
+      };
     }
   }
 
@@ -179,6 +186,35 @@ export async function detectLanguage(text: string): Promise<{ code: LanguageCode
   } catch (err) {
     return { code: "en", confidence: 0.5 };
   }
+}
+
+/**
+ * Exported helper: apply parsing heuristics to raw model text
+ * Separated for unit testing.
+ */
+export function parseTranslatedText(raw: string): string {
+  let translatedText = raw || "";
+
+  try {
+    const maybeJson = JSON.parse(raw);
+    if (maybeJson && typeof maybeJson === "object") {
+      translatedText = maybeJson.translated || maybeJson.translation || maybeJson.text || JSON.stringify(maybeJson);
+    }
+  } catch (e) {}
+
+  if (!translatedText || translatedText.trim() === "") {
+    const tickMatch = raw.match(/```(?:\w+)?\n([\s\S]*?)```/);
+    if (tickMatch) translatedText = tickMatch[1].trim();
+  }
+
+  if (!translatedText || translatedText.trim() === "") {
+    const labelMatch = raw.match(/(?:Translation|Translated(?:\stext)?|Translated:)[:\s-]*([\s\S]+)/i);
+    if (labelMatch) translatedText = labelMatch[1].trim();
+  }
+
+  translatedText = translatedText.replace(/^\s*[a-z]{2}[:\-]\s*/i, "").trim();
+  translatedText = translatedText.replace(/\n{2,}/g, "\n").trim();
+  return translatedText;
 }
 
 /**
