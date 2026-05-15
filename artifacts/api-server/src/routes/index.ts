@@ -10,6 +10,7 @@ import explainRouter from "./explain";
 import studyPlanRouter from "./study-plan";
 import authRouter from "./auth";
 import paymentRouter from "./payment";
+import languageRouter from "./language";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use("/explain", explainRouter);
 router.use("/study-plan", studyPlanRouter);
 router.use("/auth", authRouter);
 router.use("/payment", paymentRouter);
+router.use("/language", languageRouter);
 
 export default router;
