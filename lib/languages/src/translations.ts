@@ -8,9 +8,12 @@
 import type { LanguageCode } from "./index";
 import { LANGUAGE_PROMPTS, getGeminiLanguageConfig } from "./gemini-integration";
 
-// Import Gemini client
-// Use require to avoid ESM resolution issues during bundling
-const { ai } = require("../../integrations-gemini-ai/src/client");
+// Lazily require Gemini client so test runners can mock the module path
+function getAi() {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const mod = require("../../integrations-gemini-ai/src/client");
+  return mod.ai;
+}
 
 async function callWithRetries<T>(fn: () => Promise<T>, attempts = 3, backoff = 500): Promise<T> {
   let lastError: any;
@@ -82,7 +85,7 @@ export class TranslationService {
       );
 
       const response = await callWithRetries(() =>
-        ai.models.generateContent({ model, contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+        getAi().models.generateContent({ model, contents: [{ role: "user", parts: [{ text: prompt }] }] }),
       );
 
       const candidate = response?.candidates?.[0];
@@ -173,7 +176,7 @@ export async function detectLanguage(text: string): Promise<{ code: LanguageCode
     const prompt = LANGUAGE_PROMPTS.languageDetection(text);
 
     const response = await callWithRetries(() =>
-      ai.models.generateContent({ model, contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+      getAi().models.generateContent({ model, contents: [{ role: "user", parts: [{ text: prompt }] }] }),
     );
 
     const candidate = response?.candidates?.[0];
