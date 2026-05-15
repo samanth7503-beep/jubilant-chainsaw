@@ -6,6 +6,25 @@
  */
 
 import type { LanguageCode } from "./index";
+import { LANGUAGE_PROMPTS, getGeminiLanguageConfig } from "./gemini-integration";
+
+// Import Gemini client
+// Use require to avoid ESM resolution issues during bundling
+const { ai } = require("../../integrations-gemini-ai/src/client");
+
+async function callWithRetries<T>(fn: () => Promise<T>, attempts = 3, backoff = 500): Promise<T> {
+  let lastError: any;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastError = err;
+      const delay = backoff * Math.pow(2, i);
+      await new Promise((res) => setTimeout(res, delay));
+    }
+  }
+  throw lastError;
+}
 
 export interface TranslationRequest {
   text: string;
@@ -53,15 +72,40 @@ export class TranslationService {
     }
 
     try {
-      // This would use the Gemini API directly
-      // For now, return a placeholder indicating the service is ready
+      const cfg = getGeminiLanguageConfig();
+      const model = cfg.model || "gemini-2.5-flash";
+
+      const prompt = LANGUAGE_PROMPTS.translation(
+        request.sourceLanguage,
+        request.targetLanguage,
+        request.text,
+      );
+
+      const response = await callWithRetries(() =>
+        ai.models.generateContent({ model, contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+      );
+
+      const candidate = response?.candidates?.[0];
+      const text = candidate?.content?.parts?.map((p: any) => p.text).join("\n") || "";
+
+      // Robust parsing: attempt to extract the translated block if model returns JSON or labeled text
+      let translatedText = text;
+      try {
+        const maybeJson = JSON.parse(text);
+        if (maybeJson && typeof maybeJson === "object") {
+          translatedText = maybeJson.translated || maybeJson.translation || JSON.stringify(maybeJson);
+        }
+      } catch (e) {
+        // not JSON — fall through
+      }
+
       return {
         original: request.text,
-        translated: `[Translated from ${request.sourceLanguage} to ${request.targetLanguage} using Gemini]`,
+        translated: translatedText || `[Translated from ${request.sourceLanguage} to ${request.targetLanguage} using Gemini]`,
         sourceLanguage: request.sourceLanguage,
         targetLanguage: request.targetLanguage,
         provider: "gemini",
-        confidence: 0.95,
+        confidence: 0.9,
       };
     } catch (error) {
       throw new Error(`Translation failed: ${error instanceof Error ? error.message : "Unknown error"}`);
@@ -95,12 +139,26 @@ export class TranslationService {
  * Future: Use Bhashini Language Detection service
  */
 export async function detectLanguage(text: string): Promise<{ code: LanguageCode; confidence: number }> {
-  // Placeholder implementation
-  // In production, integrate with language detection API
-  return {
-    code: "en",
-    confidence: 0.95,
-  };
+  try {
+    const cfg = getGeminiLanguageConfig();
+    const model = cfg.model || "gemini-2.5-flash";
+
+    const prompt = LANGUAGE_PROMPTS.languageDetection(text);
+
+    const response = await callWithRetries(() =>
+      ai.models.generateContent({ model, contents: [{ role: "user", parts: [{ text: prompt }] }] }),
+    );
+
+    const candidate = response?.candidates?.[0];
+    const content = candidate?.content?.parts?.map((p: any) => p.text).join("\n") || "";
+
+    // Try to extract a language code (e.g., 'en', 'hi') from the model output
+    const match = content.match(/\b([a-z]{2})\b/i);
+    const code = match ? match[1].toLowerCase() : "en";
+    return { code: code as LanguageCode, confidence: 0.9 };
+  } catch (err) {
+    return { code: "en", confidence: 0.5 };
+  }
 }
 
 /**

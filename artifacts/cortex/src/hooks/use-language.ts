@@ -47,7 +47,7 @@ export function useLanguageDetection(): UseLanguageDetectionResult {
       }
 
       const data = await response.json();
-      setDetectedLanguage(data.detectedLanguage);
+      setDetectedLanguage(data.code);
       setConfidence(data.confidence);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -93,7 +93,7 @@ export function useTranslation(): UseTranslationResult {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            content,
+            text: content,
             sourceLanguage,
             targetLanguage,
           }),

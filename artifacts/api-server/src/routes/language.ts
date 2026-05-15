@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { getGeminiLanguageConfig, TranslationService, detectLanguage } from "@workspace/languages";
+import { getGeminiLanguageConfig, TranslationService, detectLanguage } from "../../../../lib/languages/src/exports";
 
 const router: IRouter = Router();
 
@@ -45,6 +45,21 @@ router.post("/translate", async (req, res) => {
   } catch (err) {
     console.error("/language/translate error", err instanceof Error ? err.message : err);
     res.status(500).json({ error: "Translation failed" });
+  }
+});
+
+router.get("/supported", (_req, res) => {
+  try {
+    // Import languages module dynamically to avoid build-time circulars
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { getAllLanguages } = require("../../../../lib/languages/src");
+    const langs = getAllLanguages();
+    const supported = langs.map((l: any) => l.code);
+    const def = process.env.DEFAULT_LANGUAGE || "en";
+    res.json({ supported, default: def });
+  } catch (err) {
+    console.error("/language/supported error", err);
+    res.status(500).json({ error: "Failed to get supported languages" });
   }
 });
 

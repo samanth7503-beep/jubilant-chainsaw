@@ -24,6 +24,7 @@ const STYLE_LOCK: Partial<Record<PedagogyStyle, keyof import("@/store/appStore")
 
 const TIER_LABEL: Record<string, { text: string; cls: string }> = {
   free:      { text: "Free Plan",     cls: "text-muted border-[hsl(var(--border-c))]" },
+import LanguageSelector from "./LanguageSelector";
   pro:       { text: "✦ Pro Active",  cls: "text-accent border-blue-500/40" },
   pro_plus:  { text: "★ Pro Plus",    cls: "text-purple-400 border-purple-400/40" },
   developer: { text: "⚡ Developer",  cls: "text-orange-400 border-orange-500/40 bg-orange-500/10" },
@@ -209,14 +210,7 @@ export default function ParameterMatrix({ onProceed }: { onProceed: () => void }
           <ChipSelector
             options={MODELS}
             value={params.model}
-            onChange={(v) => setParam("model", v)}
-            lockMap={MODEL_LOCK as Partial<Record<ModelId, string>>}
-            entitlements={entitlements as unknown as Record<string, boolean | number>}
-            onLocked={() => setUpgradeModal(true)}
-          />
-        </GlassCard>
-
-        <motion.div
+          <LanguageSelector />
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
