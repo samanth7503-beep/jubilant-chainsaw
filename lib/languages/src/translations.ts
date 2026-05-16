@@ -199,14 +199,25 @@ export function parseTranslatedText(raw: string): string {
   if (!raw) return "";
   let translatedText = raw;
 
-  // 1) If JSON, prefer known fields
+  // 1) Try full JSON parse first
   try {
     const maybeJson = JSON.parse(raw);
     if (maybeJson && typeof maybeJson === "object") {
       return maybeJson.translated || maybeJson.translation || maybeJson.text || JSON.stringify(maybeJson);
     }
   } catch (e) {
-    // not JSON
+    // Try to extract JSON from the first line if full parse fails
+    const firstLine = raw.split('\n')[0];
+    if (firstLine.startsWith('{')) {
+      try {
+        const maybeJson = JSON.parse(firstLine);
+        if (maybeJson && typeof maybeJson === "object") {
+          return maybeJson.translated || maybeJson.translation || maybeJson.text || JSON.stringify(maybeJson);
+        }
+      } catch (e2) {
+        // not JSON — continue
+      }
+    }
   }
 
   // 2) Extract code-fence block if present (and remove any preceding text)
@@ -217,8 +228,8 @@ export function parseTranslatedText(raw: string): string {
   const labelMatch = raw.match(/(?:^|\n)\s*(?:Translation|Translated(?:\stext)?|Translated:)[:\s-]*([\s\S]+)/i);
   if (labelMatch) return labelMatch[1].trim();
 
-  // 4) Remove leading language labels like "en: ..."
-  translatedText = translatedText.replace(/^\s*[a-z]{2}[:\-]\s*/i, "").trim();
+  // 4) Remove leading language labels like "en: ..." or "ta - ..."
+  translatedText = translatedText.replace(/^\s*[a-z]{2}\s*[-:]\s*/i, "").trim();
 
   // 5) Collapse multiple blank lines
   translatedText = translatedText.replace(/\n{2,}/g, "\n").trim();
